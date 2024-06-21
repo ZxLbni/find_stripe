@@ -66,7 +66,7 @@ def find_stripe_keys(website):
     return keys
 
 def main():
-    query = "site:example.com"  # Replace with your search query
+    query = "Stripe payment site"  # Replace with your search query
     max_websites = 10  # Limit the number of websites to check
     websites = search_websites(query, max_websites)
     stripe_websites = []
