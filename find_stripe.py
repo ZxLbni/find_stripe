@@ -26,7 +26,7 @@ def get_headers():
         'Upgrade-Insecure-Requests': '1',
     }
 
-def crawl_website(url, max_depth=2):
+def crawl_website(session, url, max_depth=2):
     """
     Crawl the given URL to find additional links.
     """
@@ -37,7 +37,7 @@ def crawl_website(url, max_depth=2):
     links = []
 
     try:
-        response = requests.get(url, headers=get_headers())
+        response = session.get(url, headers=get_headers())
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, 'html.parser')
             for a_tag in soup.find_all('a', href=True):
@@ -53,12 +53,12 @@ def crawl_website(url, max_depth=2):
 
     return links
 
-def check_stripe(website):
+def check_stripe(session, website):
     """
     Check if the given website uses Stripe payment gateway.
     """
     try:
-        response = requests.get(website, headers=get_headers())
+        response = session.get(website, headers=get_headers())
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, 'html.parser')
             if "stripe" in soup.text.lower():
@@ -97,27 +97,28 @@ def main():
 
     to_visit = seed_urls.copy()
     
-    while to_visit and len(visited_urls) < max_websites:
-        url = to_visit.pop(0)
-        if url in visited_urls:
-            continue
-        visited_urls.add(url)
-        
-        if check_stripe(url):
-            stripe_websites.append(url)
-            try:
-                response = requests.get(url, headers=get_headers())
-                if response.status_code == 200:
-                    keys = find_stripe_keys(response.text)
-                    if keys:
-                        stripe_keys.extend(keys)
-            except requests.RequestException as e:
-                print(f"Error accessing {url} for keys: {e}")
-        
-        new_links = crawl_website(url, max_depth)
-        to_visit.extend(new_links)
+    with requests.Session() as session:
+        while to_visit and len(visited_urls) < max_websites:
+            url = to_visit.pop(0)
+            if url in visited_urls:
+                continue
+            visited_urls.add(url)
+            
+            if check_stripe(session, url):
+                stripe_websites.append(url)
+                try:
+                    response = session.get(url, headers=get_headers())
+                    if response.status_code == 200:
+                        keys = find_stripe_keys(response.text)
+                        if keys:
+                            stripe_keys.extend(keys)
+                except requests.RequestException as e:
+                    print(f"Error accessing {url} for keys: {e}")
+            
+            new_links = crawl_website(session, url, max_depth)
+            to_visit.extend(new_links)
 
-        time.sleep(5)  # Adding delay to avoid being blocked
+            time.sleep(5)  # Adding delay to avoid being blocked
 
     if stripe_websites:
         print(f"Writing {len(stripe_websites)} Stripe websites to file.")
