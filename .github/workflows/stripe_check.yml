@@ -1,0 +1,42 @@
+name: Check for Stripe Payment Gateway
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Runs daily at midnight
+  push:
+    branches:
+      - main
+
+jobs:
+  check_stripe:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests beautifulsoup4
+
+    - name: Run Stripe check script
+      run: |
+        python find_stripe.py
+
+    - name: Upload results
+      uses: actions/upload-artifact@v2
+      with:
+        name: stripe-websites
+        path: stripe_websites.txt
+
+    - name: Upload API keys
+      uses: actions/upload-artifact@v2
+      with:
+        name: stripe-keys
+        path: stripe_keys.txt
