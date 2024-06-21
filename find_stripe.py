@@ -2,33 +2,33 @@ import requests
 from bs4 import BeautifulSoup
 import re
 import time
+from urllib.parse import urljoin, urlparse
 
-def search_websites(query, max_results=10):
+visited_urls = set()
+
+def crawl_website(url, max_depth=2):
     """
-    Search the web using a search engine and return a list of websites.
+    Crawl the given URL to find additional links.
     """
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-    }
-    search_url = f"https://www.google.com/search?q={query}&num={max_results}"
-    websites = []
+    if max_depth == 0 or url in visited_urls:
+        return []
+    
+    visited_urls.add(url)
+    links = []
 
     try:
-        response = requests.get(search_url, headers=headers)
+        response = requests.get(url)
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, 'html.parser')
             for a_tag in soup.find_all('a', href=True):
                 href = a_tag['href']
-                if "url?q=" in href and not "webcache" in href:
-                    url = href.split("?q=")[1].split("&sa=U")[0]
-                    if url.startswith('http'):
-                        print(f"Found website: {url}")
-                        websites.append(url)
-        else:
-            print(f"Failed to get search results: {response.status_code}")
+                full_url = urljoin(url, href)
+                if urlparse(full_url).scheme in ["http", "https"]:
+                    links.append(full_url)
     except requests.RequestException as e:
-        print(f"Error performing search: {e}")
-    return websites[:max_results]
+        print(f"Error crawling {url}: {e}")
+
+    return links
 
 def check_stripe(website):
     """
@@ -66,18 +66,26 @@ def find_stripe_keys(website):
     return keys
 
 def main():
-    query = "Stripe payment site"  # Replace with your search query
-    max_websites = 10  # Limit the number of websites to check
-    websites = search_websites(query, max_websites)
+    seed_urls = [
+        "https://example.com",  # Replace with initial seed URLs
+    ]
+    max_depth = 2
     stripe_websites = []
     stripe_keys = []
 
-    for website in websites:
-        if check_stripe(website):
-            stripe_websites.append(website)
-            keys = find_stripe_keys(website)
+    to_visit = seed_urls.copy()
+    
+    while to_visit:
+        url = to_visit.pop(0)
+        if check_stripe(url):
+            stripe_websites.append(url)
+            keys = find_stripe_keys(url)
             if keys:
                 stripe_keys.extend(keys)
+        
+        new_links = crawl_website(url, max_depth)
+        to_visit.extend(new_links)
+
         time.sleep(2)  # Adding delay to avoid being blocked
 
     if stripe_websites:
