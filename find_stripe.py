@@ -4,10 +4,15 @@ import re
 import time
 from urllib.parse import urljoin, urlparse
 
+visited_urls = set()
+
 def crawl_website(url, max_depth=2):
     """
     Crawl the given URL to find additional links.
     """
+    if max_depth == 0 or url in visited_urls:
+        return []
+
     visited_urls.add(url)
     links = []
 
@@ -71,7 +76,6 @@ def main():
     stripe_keys = []
 
     to_visit = seed_urls.copy()
-    visited_urls = set()
     
     while to_visit and len(visited_urls) < max_websites:
         url = to_visit.pop(0)
