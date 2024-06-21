@@ -23,7 +23,7 @@ def crawl_website(url, max_depth=2):
             for a_tag in soup.find_all('a', href=True):
                 href = a_tag['href']
                 full_url = urljoin(url, href)
-                if urlparse(full_url).scheme in ["http", "https"]:
+                if urlparse(full_url).scheme in ["http", "https"] and full_url not in visited_urls:
                     links.append(full_url)
                     print(f"Discovered link: {full_url}")
         else:
@@ -70,9 +70,18 @@ def find_stripe_keys(website):
 
 def main():
     seed_urls = [
-        "https://example.com",  # Replace with initial seed URLs
+        "https://www.shopify.com",
+        "https://www.patreon.com",
+        "https://www.kickstarter.com",
+        "https://www.gofundme.com",
+        "https://www.squarespace.com",
+        "https://www.bigcommerce.com",
+        "https://www.woocommerce.com",
+        "https://www.wix.com",
+        "https://www.weebly.com",
+        "https://www.etsy.com",
     ]
-    max_depth = 2
+    max_depth = 1
     stripe_websites = []
     stripe_keys = []
 
