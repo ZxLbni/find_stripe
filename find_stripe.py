@@ -82,13 +82,19 @@ def main():
         "https://www.etsy.com",
     ]
     max_depth = 1
+    max_websites = 50
     stripe_websites = []
     stripe_keys = []
 
     to_visit = seed_urls.copy()
+    visited_urls = set()
     
-    while to_visit:
+    while to_visit and len(visited_urls) < max_websites:
         url = to_visit.pop(0)
+        if url in visited_urls:
+            continue
+        visited_urls.add(url)
+        
         if check_stripe(url):
             stripe_websites.append(url)
             keys = find_stripe_keys(url)
