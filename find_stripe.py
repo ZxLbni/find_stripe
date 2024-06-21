@@ -6,6 +6,10 @@ from urllib.parse import urljoin, urlparse
 
 visited_urls = set()
 
+headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
+}
+
 def crawl_website(url, max_depth=2):
     """
     Crawl the given URL to find additional links.
@@ -17,7 +21,7 @@ def crawl_website(url, max_depth=2):
     links = []
 
     try:
-        response = requests.get(url)
+        response = requests.get(url, headers=headers)
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, 'html.parser')
             for a_tag in soup.find_all('a', href=True):
@@ -38,7 +42,7 @@ def check_stripe(website):
     Check if the given website uses Stripe payment gateway.
     """
     try:
-        response = requests.get(website)
+        response = requests.get(website, headers=headers)
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, 'html.parser')
             if "stripe" in soup.text.lower():
@@ -86,7 +90,7 @@ def main():
         if check_stripe(url):
             stripe_websites.append(url)
             try:
-                response = requests.get(url)
+                response = requests.get(url, headers=headers)
                 if response.status_code == 200:
                     keys = find_stripe_keys(response.text)
                     if keys:
@@ -97,7 +101,7 @@ def main():
         new_links = crawl_website(url, max_depth)
         to_visit.extend(new_links)
 
-        time.sleep(2)  # Adding delay to avoid being blocked
+        time.sleep(5)  # Increase delay to avoid being blocked
 
     if stripe_websites:
         print(f"Writing {len(stripe_websites)} Stripe websites to file.")
