@@ -12,7 +12,7 @@ def crawl_website(url, max_depth=2):
     """
     if max_depth == 0 or url in visited_urls:
         return []
-    
+
     visited_urls.add(url)
     links = []
 
@@ -25,6 +25,9 @@ def crawl_website(url, max_depth=2):
                 full_url = urljoin(url, href)
                 if urlparse(full_url).scheme in ["http", "https"]:
                     links.append(full_url)
+                    print(f"Discovered link: {full_url}")
+        else:
+            print(f"Failed to access {url}: {response.status_code}")
     except requests.RequestException as e:
         print(f"Error crawling {url}: {e}")
 
