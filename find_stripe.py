@@ -4,15 +4,10 @@ import re
 import time
 from urllib.parse import urljoin, urlparse
 
-visited_urls = set()
-
 def crawl_website(url, max_depth=2):
     """
     Crawl the given URL to find additional links.
     """
-    if max_depth == 0 or url in visited_urls:
-        return []
-
     visited_urls.add(url)
     links = []
 
@@ -50,22 +45,11 @@ def check_stripe(website):
         print(f"Error accessing {website}: {e}")
     return False
 
-def find_stripe_keys(website):
+def find_stripe_keys(html_content):
     """
-    Find potential Stripe API keys in the given website's content.
+    Find potential Stripe API keys in the given HTML content.
     """
-    keys = []
-    try:
-        response = requests.get(website)
-        if response.status_code == 200:
-            matches = re.findall(r'sk_live_[a-zA-Z0-9]{24}', response.text)
-            if matches:
-                print(f"Found Stripe keys on {website}: {matches}")
-                keys.extend(matches)
-        else:
-            print(f"Failed to access {website} for keys: {response.status_code}")
-    except requests.RequestException as e:
-        print(f"Error accessing {website} for keys: {e}")
+    keys = re.findall(r'sk_live_[a-zA-Z0-9]{24}', html_content)
     return keys
 
 def main():
@@ -97,9 +81,14 @@ def main():
         
         if check_stripe(url):
             stripe_websites.append(url)
-            keys = find_stripe_keys(url)
-            if keys:
-                stripe_keys.extend(keys)
+            try:
+                response = requests.get(url)
+                if response.status_code == 200:
+                    keys = find_stripe_keys(response.text)
+                    if keys:
+                        stripe_keys.extend(keys)
+            except requests.RequestException as e:
+                print(f"Error accessing {url} for keys: {e}")
         
         new_links = crawl_website(url, max_depth)
         to_visit.extend(new_links)
