@@ -22,6 +22,7 @@ def search_websites(query):
                 if "url?q=" in href and not "webcache" in href:
                     url = href.split("?q=")[1].split("&sa=U")[0]
                     if url.startswith('http'):
+                        print(f"Found website: {url}")
                         websites.append(url)
     except requests.RequestException as e:
         print(f"Error performing search: {e}")
@@ -51,6 +52,8 @@ def find_stripe_keys(website):
         if response.status_code == 200:
             matches = re.findall(r'sk_live_[a-zA-Z0-9]{24}', response.text)
             keys.extend(matches)
+            if matches:
+                print(f"Found Stripe keys on {website}: {matches}")
     except requests.RequestException as e:
         print(f"Error accessing {website}: {e}")
     return keys
