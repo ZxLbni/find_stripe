@@ -2,13 +2,29 @@ import requests
 from bs4 import BeautifulSoup
 import re
 import time
+import random
 from urllib.parse import urljoin, urlparse
 
 visited_urls = set()
 
-headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
-}
+# List of common User-Agent headers to randomize requests
+user_agents = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Safari/605.1.15',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Firefox/89.0',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Edge/18.18362',
+]
+
+def get_headers():
+    return {
+        'User-Agent': random.choice(user_agents),
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+    }
 
 def crawl_website(url, max_depth=2):
     """
@@ -21,7 +37,7 @@ def crawl_website(url, max_depth=2):
     links = []
 
     try:
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=get_headers())
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, 'html.parser')
             for a_tag in soup.find_all('a', href=True):
@@ -42,7 +58,7 @@ def check_stripe(website):
     Check if the given website uses Stripe payment gateway.
     """
     try:
-        response = requests.get(website, headers=headers)
+        response = requests.get(website, headers=get_headers())
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, 'html.parser')
             if "stripe" in soup.text.lower():
@@ -90,7 +106,7 @@ def main():
         if check_stripe(url):
             stripe_websites.append(url)
             try:
-                response = requests.get(url, headers=headers)
+                response = requests.get(url, headers=get_headers())
                 if response.status_code == 200:
                     keys = find_stripe_keys(response.text)
                     if keys:
@@ -101,7 +117,7 @@ def main():
         new_links = crawl_website(url, max_depth)
         to_visit.extend(new_links)
 
-        time.sleep(5)  # Increase delay to avoid being blocked
+        time.sleep(5)  # Adding delay to avoid being blocked
 
     if stripe_websites:
         print(f"Writing {len(stripe_websites)} Stripe websites to file.")
