@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import re
 import time
+import random
 from urllib.parse import urljoin, urlparse
 
 def get_headers():
