@@ -6,7 +6,10 @@ import random
 from urllib.parse import urljoin, urlparse
 
 # Proxy configuration
-PROXY = "http://iekqsuzp-rotate:q5zrpgr2jx5g@p.webshare.io:80/"
+PROXIES = [
+    "http://iekqsuzp-rotate:q5zrpgr2jx5g@p.webshare.io:80/",
+    "http://Kgr6lEXa6U-zone-star:57308329:8d5b410c792e0999.abcproxy.vip:4950/",
+]
 
 # Headers for web scraping
 def get_headers():
@@ -141,15 +144,16 @@ def get_predefined_websites():
 # Scrape content and find sk_live keys
 def fetch_page_content(url, session, retries=3):
     for attempt in range(retries):
+        proxy = random.choice(PROXIES)
         try:
-            response = session.get(url, headers=get_headers(), proxies={"http": PROXY, "https": PROXY})
+            response = session.get(url, headers=get_headers(), proxies={"http": proxy, "https": proxy})
             if response.status_code == 200:
                 return response.text
             else:
                 print(f"Failed to access {url} on attempt {attempt + 1}: {response.status_code}")
         except requests.RequestException as e:
-            print(f"Error accessing {url} on attempt {attempt + 1}: {e}")
-        time.sleep(2)
+            print(f"Error accessing {url} on attempt {attempt + 1} using proxy {proxy}: {e}")
+        time.sleep(2 ** attempt)  # Exponential backoff
     return None
 
 def find_stripe_keys(html_content):
