@@ -22,17 +22,18 @@ def get_headers():
         'Upgrade-Insecure-Requests': '1',
     }
 
-def fetch_page_content(url):
-    try:
-        response = requests.get(url, headers=get_headers())
-        if response.status_code == 200:
-            return response.text
-        else:
-            print(f"Failed to access {url}: {response.status_code}")
-            return None
-    except requests.RequestException as e:
-        print(f"Error accessing {url}: {e}")
-        return None
+def fetch_page_content(url, session, retries=3):
+    for attempt in range(retries):
+        try:
+            response = session.get(url, headers=get_headers())
+            if response.status_code == 200:
+                return response.text
+            else:
+                print(f"Failed to access {url} on attempt {attempt + 1}: {response.status_code}")
+        except requests.RequestException as e:
+            print(f"Error accessing {url} on attempt {attempt + 1}: {e}")
+        time.sleep(2)
+    return None
 
 def extract_links(url, html_content):
     links = set()
@@ -50,12 +51,12 @@ def check_stripe_integration(html_content):
 def find_stripe_keys(html_content):
     return re.findall(r'sk_live_[a-zA-Z0-9]{24}', html_content)
 
-def crawl_website(url, max_depth, visited_urls):
+def crawl_website(url, max_depth, visited_urls, session):
     if max_depth == 0 or url in visited_urls:
         return []
 
     visited_urls.add(url)
-    html_content = fetch_page_content(url)
+    html_content = fetch_page_content(url, session)
     if html_content is None:
         return []
 
@@ -86,22 +87,23 @@ def main():
     to_visit = seed_urls.copy()
     visited_urls = set()
     
-    while to_visit and len(visited_urls) < max_websites:
-        url = to_visit.pop(0)
-        if url in visited_urls:
-            continue
+    with requests.Session() as session:
+        while to_visit and len(visited_urls) < max_websites:
+            url = to_visit.pop(0)
+            if url in visited_urls:
+                continue
 
-        results = crawl_website(url, max_depth, visited_urls)
-        for result_url, html_content, new_links in results:
-            if result_url and html_content:
-                stripe_websites.append(result_url)
-                keys = find_stripe_keys(html_content)
-                if keys:
-                    stripe_keys.extend(keys)
-            
-            to_visit.extend(new_links)
+            results = crawl_website(url, max_depth, visited_urls, session)
+            for result_url, html_content, new_links in results:
+                if result_url and html_content:
+                    stripe_websites.append(result_url)
+                    keys = find_stripe_keys(html_content)
+                    if keys:
+                        stripe_keys.extend(keys)
+                
+                to_visit.extend(new_links)
 
-        time.sleep(2)  # Adding delay to avoid being blocked
+            time.sleep(2)  # Adding delay to avoid being blocked
 
     if stripe_websites:
         print(f"Writing {len(stripe_websites)} Stripe websites to file.")
